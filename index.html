@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#060606">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Lucid Edge</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#060606;--s:#0e0e0e;--card:#131313;--b1:#1c1c1c;--b2:#242424;
+  --g:#26A69A;--gdim:rgba(38,166,154,0.12);--ghi:rgba(38,166,154,0.25);
+  --bl:#378ADD;--bldim:rgba(55,138,221,0.12);
+  --r:#EF5350;--rdim:rgba(239,83,80,0.12);--rhi:rgba(239,83,80,0.25);
+  --am:#F5A623;--amdim:rgba(245,166,35,0.12);
+  --w:#F0F0F0;--m:#777;--d:#333;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;
+  --mono:'SF Mono','Fira Code',monospace;
+}
+body{background:var(--bg);color:var(--w);font-family:var(--font);min-height:100vh;padding-bottom:72px}
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:0.5px solid var(--b1);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;background:none;border:none;color:var(--d);font-size:10px;font-family:var(--font);cursor:pointer;transition:color 0.15s}
+.nb.on{color:var(--g)}
+.ni{font-size:18px}
+.page{display:none;padding:16px;max-width:480px;margin:0 auto}
+.page.on{display:block}
+.ph{padding:20px 0 16px;border-bottom:0.5px solid var(--b1);margin-bottom:18px}
+.pb{font-size:10px;letter-spacing:3px;color:var(--g);text-transform:uppercase;margin-bottom:4px}
+.pt{font-size:22px;font-weight:600;letter-spacing:-0.5px}
+.ps{font-size:12px;color:var(--m);margin-top:4px}
+.card{background:var(--card);border:0.5px solid var(--b1);border-radius:14px;padding:16px;margin-bottom:10px}
+.cl{font-size:10px;letter-spacing:1.5px;color:var(--d);text-transform:uppercase;margin-bottom:12px;font-family:var(--mono)}
+
+/* SIGNAL CARD */
+.sig{border-radius:14px;padding:18px;margin-bottom:10px;border:0.5px solid var(--b1)}
+.sig.enter{background:var(--gdim);border-color:rgba(38,166,154,0.3)}
+.sig.skip{background:var(--rdim);border-color:rgba(239,83,80,0.3)}
+.sig.caution{background:var(--amdim);border-color:rgba(245,166,35,0.3)}
+.sig.waiting{background:var(--s);border-color:var(--b1)}
+.verdict{font-size:26px;font-weight:700;letter-spacing:-1px}
+.verdict.enter{color:var(--g)}
+.verdict.skip{color:var(--r)}
+.verdict.caution{color:var(--am)}
+.verdict.waiting{color:var(--m)}
+.vsub{font-size:11px;color:var(--m);margin-top:2px;margin-bottom:14px;font-family:var(--mono)}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.lv{background:rgba(0,0,0,0.25);border-radius:10px;padding:10px;text-align:center}
+.lvl{font-size:9px;color:var(--m);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;font-family:var(--mono)}
+.lvv{font-size:15px;font-weight:600;font-family:var(--mono)}
+.sep{height:0.5px;background:var(--b1);margin:12px 0}
+.ai-text{font-size:13px;line-height:1.6;color:#aaa;white-space:pre-wrap}
+.meta-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.meta{background:rgba(0,0,0,0.2);border-radius:8px;padding:8px;text-align:center}
+.meta-l{font-size:9px;color:var(--m);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px;font-family:var(--mono)}
+.meta-v{font-size:12px;font-weight:500;font-family:var(--mono)}
+
+/* STATUS DOT */
+.status-row{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--d);flex-shrink:0}
+.dot.live{background:var(--g);box-shadow:0 0 0 3px rgba(38,166,154,0.2);animation:pulse 2s infinite}
+.dot.error{background:var(--r)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(38,166,154,0.2)}50%{box-shadow:0 0 0 6px rgba(38,166,154,0.05)}}
+.status-text{font-size:12px;color:var(--m);font-family:var(--mono)}
+
+/* NO SIGNAL */
+.empty{text-align:center;padding:40px 20px;color:var(--d)}
+.empty-icon{font-size:32px;margin-bottom:12px}
+.empty-text{font-size:14px;line-height:1.6}
+
+/* SETUP PAGE */
+.step{display:flex;gap:14px;padding:14px 0;border-bottom:0.5px solid var(--b1)}
+.step:last-child{border-bottom:none}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--gdim);border:0.5px solid var(--ghi);color:var(--g);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.step-body{flex:1}
+.step-title{font-size:14px;font-weight:500;margin-bottom:3px}
+.step-desc{font-size:12px;color:var(--m);line-height:1.5}
+.step-code{background:var(--s);border:0.5px solid var(--b2);border-radius:8px;padding:8px 10px;font-size:11px;font-family:var(--mono);color:var(--g);margin-top:6px;word-break:break-all}
+.url-input{background:var(--s);border:0.5px solid var(--b2);border-radius:10px;color:var(--w);font-size:13px;padding:11px 12px;width:100%;outline:none;font-family:var(--mono);margin-top:8px}
+.url-input:focus{border-color:var(--g)}
+.save-btn{background:var(--g);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:13px;width:100%;cursor:pointer;margin-top:8px;font-family:var(--font)}
+.save-btn:active{opacity:0.8}
+.notif-btn{background:var(--s);border:0.5px solid var(--b2);border-radius:10px;color:var(--g);font-size:13px;padding:11px;width:100%;cursor:pointer;font-family:var(--font);margin-top:6px}
+
+/* HISTORY */
+.hist-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:0.5px solid var(--b1);cursor:pointer}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hist-info{flex:1}
+.hist-title{font-size:13px;font-weight:500;margin-bottom:2px}
+.hist-meta{font-size:11px;color:var(--m);font-family:var(--mono)}
+.hist-verdict{font-size:12px;font-weight:600;font-family:var(--mono)}
+
+/* REFERENCE */
+.ref-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--b1);font-size:13px}
+.ref-row:last-child{border-bottom:none}
+.rk{color:var(--m)}
+.rv{font-family:var(--mono);font-weight:500}
+.rv.g{color:var(--g)}.rv.r{color:var(--r)}.rv.a{color:var(--am)}
+.alert-box{border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:12px;line-height:1.5;border:0.5px solid}
+.ab-g{background:var(--gdim);border-color:rgba(38,166,154,0.3);color:var(--g)}
+.ab-r{background:var(--rdim);border-color:rgba(239,83,80,0.3);color:var(--r)}
+.sec-title{font-size:10px;letter-spacing:1.5px;color:var(--g);text-transform:uppercase;margin:14px 0 8px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: SIGNAL ─────────────────────────────────────── -->
+<div class="page on" id="p-signal">
+  <div class="ph">
+    <div class="pb">Lucid Edge</div>
+    <div class="pt">Live Signal</div>
+    <div class="ps">Auto-validated when alert fires</div>
+  </div>
+
+  <div class="status-row">
+    <div class="dot" id="conn-dot"></div>
+    <div class="status-text" id="conn-text">Connecting...</div>
+  </div>
+
+  <div id="signal-display">
+    <div class="sig waiting">
+      <div class="empty">
+        <div class="empty-icon">📡</div>
+        <div class="empty-text">Waiting for signal<br><span style="color:var(--d);font-size:12px">Alert fires → AI validates → appears here</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2: HISTORY ─────────────────────────────────────── -->
+<div class="page" id="p-history">
+  <div class="ph">
+    <div class="pb">Lucid Edge</div>
+    <div class="pt">Signal History</div>
+    <div class="ps">Last 20 validated signals</div>
+  </div>
+  <div class="card">
+    <div id="history-list">
+      <div style="text-align:center;color:var(--d);font-size:13px;padding:20px">No signals yet</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: SETUP ────────────────────────────────────────── -->
+<div class="page" id="p-setup">
+  <div class="ph">
+    <div class="pb">Lucid Edge</div>
+    <div class="pt">Setup</div>
+    <div class="ps">Connect TradingView → Auto Validator</div>
+  </div>
+
+  <div class="card">
+    <div class="cl">Your webhook URL</div>
+    <input class="url-input" id="server-url" placeholder="https://your-app.onrender.com" type="url">
+    <button class="save-btn" onclick="saveServer()">Save Server URL</button>
+  </div>
+
+  <div class="card">
+    <div class="cl">Setup steps</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Deploy the server</div>
+        <div class="step-desc">Go to render.com → New Web Service → connect your GitHub repo with the server.js file → deploy free</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Add your Anthropic API key</div>
+        <div class="step-desc">In Render dashboard → Environment → add variable:</div>
+        <div class="step-code">ANTHROPIC_API_KEY = your_key_here</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Set TradingView webhook URL</div>
+        <div class="step-desc">When creating your alert → Notifications tab → Webhook URL:</div>
+        <div class="step-code" id="webhook-display">https://your-app.onrender.com/webhook</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Enable push notifications</div>
+        <div class="step-desc">Tap below to allow notifications so your phone buzzes when a signal fires</div>
+        <button class="notif-btn" onclick="requestNotifs()">Enable Push Notifications</button>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Add to home screen</div>
+        <div class="step-desc">Chrome menu → Add to Home Screen → "Lucid Edge" → one tap to open anytime</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 4: REFERENCE ───────────────────────────────────── -->
+<div class="page" id="p-ref">
+  <div class="ph">
+    <div class="pb">Lucid Edge</div>
+    <div class="pt">Reference</div>
+    <div class="ps">Strategy rules at a glance</div>
+  </div>
+
+  <div class="alert-box ab-g">ENTER when: EMA cross confirmed on closed candle + price correct side of VWAP + A or B grade</div>
+  <div class="alert-box ab-r">SKIP when: WEAK grade · After 11:30 AM ET · Down $600 · Already traded today</div>
+
+  <div class="card">
+    <div class="sec-title">Signal conditions</div>
+    <div class="ref-row"><span class="rk">Long trigger</span><span class="rv g">EMA9 above EMA21 + above VWAP</span></div>
+    <div class="ref-row"><span class="rk">Short trigger</span><span class="rv r">EMA9 below EMA21 + below VWAP</span></div>
+    <div class="ref-row"><span class="rk">Entry</span><span class="rv">Next candle OPEN after cross</span></div>
+    <div class="ref-row"><span class="rk">Session</span><span class="rv">8:30 AM – 11:30 AM ET</span></div>
+    <div class="ref-row"><span class="rk">Pre-market</span><span class="rv a">5:00–8:30 AM ET (A/B only)</span></div>
+
+    <div class="sec-title">EMA separation</div>
+    <div class="ref-row"><span class="rk">0–2 pts</span><span class="rv r">WEAK — skip always</span></div>
+    <div class="ref-row"><span class="rk">3–5 pts</span><span class="rv a">B-GRADE — take with caution</span></div>
+    <div class="ref-row"><span class="rk">6–10 pts</span><span class="rv g">A-GRADE — full conviction</span></div>
+    <div class="ref-row"><span class="rk">10+ pts</span><span class="rv g">A+ GRADE — maximum size</span></div>
+
+    <div class="sec-title">Contract sizing — $500 risk</div>
+    <div class="ref-row"><span class="rk">MES (10pt stop)</span><span class="rv">10 contracts</span></div>
+    <div class="ref-row"><span class="rk">MNQ (25pt stop)</span><span class="rv">10 contracts</span></div>
+    <div class="ref-row"><span class="rk">ES (10pt stop)</span><span class="rv">1 contract</span></div>
+    <div class="ref-row"><span class="rk">NQ (25pt stop)</span><span class="rv">1 contract</span></div>
+
+    <div class="sec-title">Kill switches</div>
+    <div class="ref-row"><span class="rk">Daily loss limit</span><span class="rv r">$600 — stop immediately</span></div>
+    <div class="ref-row"><span class="rk">Max trades/day</span><span class="rv">1 per session</span></div>
+    <div class="ref-row"><span class="rk">After TP hit</span><span class="rv">Close charts — done for day</span></div>
+
+    <div class="sec-title">Payout targets</div>
+    <div class="ref-row"><span class="rk">Target profit</span><span class="rv g">$4,000 per account</span></div>
+    <div class="ref-row"><span class="rk">Max payout</span><span class="rv g">$2,000 (50%) per account</span></div>
+    <div class="ref-row"><span class="rk">3 accounts</span><span class="rv g">$5,400 net per cycle</span></div>
+  </div>
+</div>
+
+<!-- NAV ─────────────────────────────────────────────────── -->
+<nav class="nav">
+  <button class="nb on" onclick="go('signal',this)"><span class="ni">⚡</span><span>Signal</span></button>
+  <button class="nb"    onclick="go('history',this)"><span class="ni">📋</span><span>History</span></button>
+  <button class="nb"    onclick="go('setup',this)"><span class="ni">⚙️</span><span>Setup</span></button>
+  <button class="nb"    onclick="go('ref',this)"><span class="ni">📊</span><span>Rules</span></button>
+</nav>
+
+<script>
+// ── NAV
+function go(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
+  document.getElementById('p-' + id).classList.add('on');
+  btn.classList.add('on');
+}
+
+// ── SERVER CONFIG
+let serverUrl = localStorage.getItem('serverUrl') || '';
+
+function saveServer() {
+  serverUrl = document.getElementById('server-url').value.replace(/\/$/, '');
+  localStorage.setItem('serverUrl', serverUrl);
+  document.getElementById('webhook-display').textContent = serverUrl + '/webhook';
+  alert('✅ Server URL saved! Start polling...');
+  startPolling();
+}
+
+// Load saved URL
+if (serverUrl) {
+  document.getElementById('server-url').value = serverUrl;
+  document.getElementById('webhook-display').textContent = serverUrl + '/webhook';
+}
+
+// ── SIGNAL RENDERING
+function verdictClass(v) {
+  const vl = (v || '').toLowerCase();
+  if (vl.includes('enter')) return 'enter';
+  if (vl.includes('skip'))  return 'skip';
+  if (vl.includes('caution')) return 'caution';
+  return 'waiting';
+}
+
+function verdictEmoji(v) {
+  const vl = (v || '').toLowerCase();
+  if (vl.includes('enter')) return '✅';
+  if (vl.includes('skip'))  return '❌';
+  if (vl.includes('caution')) return '⚠️';
+  return '📡';
+}
+
+function dirEmoji(d) { return d === 'LONG' ? '▲' : '▼'; }
+
+function gradeColor(sep) {
+  return sep >= 6 ? 'var(--g)' : sep >= 3 ? 'var(--am)' : 'var(--r)';
+}
+
+function renderSignal(sig) {
+  if (!sig) return;
+  const vc = verdictClass(sig.verdict);
+  const ve = verdictEmoji(sig.verdict);
+  const de = dirEmoji(sig.direction);
+  const sep = parseFloat(sig.emaSep) || 0;
+  const pv = sig.instrument?.includes('MES') ? 5 : sig.instrument?.includes('MNQ') ? 2 : sig.instrument?.includes('ES') ? 50 : 20;
+  const contracts = sig.instrument?.startsWith('M') ? 10 : 1;
+  const stopPts = sig.instrument?.includes('NQ') ? 25 : 10;
+  const risk = stopPts * pv * contracts;
+  const reward = risk * 2;
+
+  document.getElementById('signal-display').innerHTML = `
+    <div class="sig ${vc}">
+      <div class="verdict ${vc}">${ve} ${de} ${sig.direction} — ${sig.verdict || 'ANALYZING'}</div>
+      <div class="vsub">${sig.instrument || 'MES'} · ${sig.grade || ''} · ${sig.signalTime || ''}</div>
+      <div class="levels">
+        <div class="lv">
+          <div class="lvl">Stop</div>
+          <div class="lvv" style="color:var(--r)">${sig.slPrice || '—'}</div>
+        </div>
+        <div class="lv">
+          <div class="lvl">Entry</div>
+          <div class="lvv">${parseFloat(sig.price || 0).toFixed(2)}</div>
+        </div>
+        <div class="lv">
+          <div class="lvl">Target</div>
+          <div class="lvv" style="color:var(--g)">${sig.tpPrice || '—'}</div>
+        </div>
+      </div>
+      <div class="meta-row">
+        <div class="meta">
+          <div class="meta-l">EMA sep</div>
+          <div class="meta-v" style="color:${gradeColor(sep)}">${sep.toFixed(1)}pts</div>
+        </div>
+        <div class="meta">
+          <div class="meta-l">Risk</div>
+          <div class="meta-v" style="color:var(--r)">$${risk}</div>
+        </div>
+        <div class="meta">
+          <div class="meta-l">Reward</div>
+          <div class="meta-v" style="color:var(--g)">$${reward}</div>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div class="ai-text">${sig.aiText || sig.reason || 'Awaiting AI analysis...'}</div>
+    </div>
+  `;
+}
+
+function renderHistory(signals) {
+  if (!signals || signals.length === 0) {
+    document.getElementById('history-list').innerHTML =
+      '<div style="text-align:center;color:var(--d);font-size:13px;padding:20px">No signals yet</div>';
+    return;
+  }
+  document.getElementById('history-list').innerHTML = signals.map(sig => {
+    const vc = verdictClass(sig.verdict);
+    const dotColor = vc === 'enter' ? 'var(--g)' : vc === 'skip' ? 'var(--r)' : 'var(--am)';
+    const verdColor = vc === 'enter' ? 'var(--g)' : vc === 'skip' ? 'var(--r)' : 'var(--am)';
+    return `
+      <div class="hist-item">
+        <div class="hist-dot" style="background:${dotColor}"></div>
+        <div class="hist-info">
+          <div class="hist-title">${sig.direction} ${sig.instrument} — ${sig.grade}</div>
+          <div class="hist-meta">${sig.signalTime} · ${parseFloat(sig.price || 0).toFixed(2)}</div>
+        </div>
+        <div class="hist-verdict" style="color:${verdColor}">${sig.verdict}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── POLLING
+let lastSignalId = null;
+let pollInterval = null;
+let connected = false;
+
+async function poll() {
+  if (!serverUrl) return;
+  try {
+    const [sigRes, histRes] = await Promise.all([
+      fetch(serverUrl + '/signal/latest'),
+      fetch(serverUrl + '/signal/history')
+    ]);
+
+    if (!sigRes.ok) throw new Error('Server error');
+
+    const sigData  = await sigRes.json();
+    const histData = await histRes.json();
+
+    // Update connection status
+    if (!connected) {
+      connected = true;
+      document.getElementById('conn-dot').className = 'dot live';
+      document.getElementById('conn-text').textContent = 'Connected — waiting for signal';
+    }
+
+    // Render history
+    renderHistory(histData.signals || []);
+
+    // Check for new signal
+    const sig = sigData.signal;
+    if (sig) {
+      document.getElementById('conn-text').textContent = 'Last signal: ' + sig.signalTime;
+      if (sig.id !== lastSignalId) {
+        lastSignalId = sig.id;
+        renderSignal(sig);
+        // Vibrate on new signal
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+      }
+    }
+
+  } catch (err) {
+    connected = false;
+    document.getElementById('conn-dot').className = 'dot error';
+    document.getElementById('conn-text').textContent = 'Disconnected — check server URL';
+  }
+}
+
+function startPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  poll();
+  pollInterval = setInterval(poll, 5000); // poll every 5 seconds
+}
+
+if (serverUrl) startPolling();
+
+// ── PUSH NOTIFICATIONS
+async function requestNotifs() {
+  if (!serverUrl) { alert('Save your server URL first'); return; }
+  if (!('Notification' in window)) { alert('Notifications not supported on this browser'); return; }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') { alert('Please allow notifications to receive signal alerts'); return; }
+
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      const keyRes = await fetch(serverUrl + '/push/vapid-key');
+      const { publicKey } = await keyRes.json();
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKey
+      });
+
+      await fetch(serverUrl + '/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub)
+      });
+
+      alert('✅ Push notifications enabled! You will be alerted when signals fire.');
+    } catch (err) {
+      alert('Could not enable push: ' + err.message);
+    }
+  } else {
+    alert('Push notifications require HTTPS and a modern browser. Make sure the app is running on https://');
+  }
+}
+</script>
+</body>
+</html>
