@@ -5,13 +5,11 @@ const app     = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
 
 let latestSignal = null;
 let signalHistory = [];
 
-app.get('/', (req, res) => {
-  res.json({ status: 'Lucid Edge Validator running', signals: signalHistory.length });
-});
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', signals: signalHistory.length });
